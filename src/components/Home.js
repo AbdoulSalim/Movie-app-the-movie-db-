@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   API_URL,
   API_KEY,
@@ -18,9 +18,22 @@ import Spinner from "./elements/Spinner";
 
 import { useHomeFetch } from "./hooks/useHomeFetch";
 
+import NoImage from "./images/no_image.jpg";
+
 const Home = () => {
   const [{ state, loading, error }, fetchMovies] = useHomeFetch();
-  console.log(state);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const loadMoreMovies = () => {
+    const searchEndpoint = `${API_URL}search/movie?api_key=${API_KEY}&query=${searchTerm}&page=${state.currentPage +
+      1}`;
+    const popularEndpoint = `${API_URL}movie/popular?api_key=${API_KEY}&page=${state.currentPage +
+      1}`;
+
+    const endpoint = searchTerm ? searchEndpoint : popularEndpoint;
+
+    fetchMovies(endpoint);
+  };
 
   if (error) return <div>Something went wrong...</div>;
   if (!state.movie[0]) return <Spinner />;
@@ -33,10 +46,26 @@ const Home = () => {
         text={state.heroImage.overview}
       />
       <SearchBar />
-      <Grid />
-      <MovieThumb />
-      <Spinner />
-      <LoadMoreBtn />
+      <Grid header={searchTerm ? "Search result" : "Popular movies"}>
+        {state.movie.map(movie => (
+          <MovieThumb
+            key={movie.id}
+            clickable
+            image={
+              movie.poster_path
+                ? `${IMAGE_BASE_URL}${POSTER_SIZE}${movie.poster_path}`
+                : NoImage
+            }
+            movieId={movie.id}
+            movieName={movie.original_title}
+          />
+        ))}
+      </Grid>
+      {/* If the loading is true return spinner else return nothing */}
+      {loading && <Spinner />}
+      {state.currentPage < state.totalPages && !loading && (
+        <LoadMoreBtn text="Load more" callback={loadMoreMovies} />
+      )}
     </>
   );
 };
